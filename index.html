@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamificación - Tabla Periodica</title>
+    <style>
+        :root {
+            --green-primary: #8cc63f;
+            --green-dark: #76a832;
+            --green-light: #d4e8b8;
+            --red-fail: #ec1c24;
+            --bg-gray: #f0f1f2;
+            --text-main: #333;
+        }
+
+        body {
+            background-color: var(--bg-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        /* Cabecera de Pregunta */
+        .question-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 15px;
+            border-bottom: 5px solid var(--green-light);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        #question-text {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* Área del Juego */
+        .game-area {
+            position: relative;
+            width: 100%;
+            max-width: 550px;
+            aspect-ratio: 1 / 1; /* Mantiene proporción cuadrada perfecta */
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #rosco-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        /* El Rosco */
+        .rosco-letter {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background: white;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .rosco-letter.active {
+            background-color: var(--green-primary);
+            color: white;
+            border-color: var(--green-primary);
+            transform: translate(-50%, -50%) scale(1.2);
+            box-shadow: 0 0 15px rgba(140, 198, 63, 0.4);
+        }
+
+        .rosco-letter.correct { background-color: var(--green-primary); color: white; border-color: var(--green-primary); }
+        .rosco-letter.wrong { background-color: var(--red-fail); color: white; border-color: var(--red-fail); }
+
+        /* Controles Centrales */
+        .game-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 55%; /* Se adapta al tamaño del rosco */
+            z-index: 5;
+        }
+
+        .hint-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .hint-label strong { color: var(--text-main); font-size: 1.2rem; }
+
+        #answer-input {
+            width: 90%;
+            padding: 8px;
+            font-size: 1.1rem;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        #answer-input:focus { border-color: var(--green-primary); }
+
+        .btn-next {
+            background-color: var(--green-primary);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            margin-top: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--green-dark);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-next:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--green-dark); }
+        .btn-next svg { fill: white; width: 22px; height: 22px; }
+
+        /* Footer y Stats */
+        .footer-stats {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 8px 20px;
+            border-radius: 50px;
+            border: 3px solid var(--green-primary);
+            font-size: 1.4rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .progress-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border: 2px dotted var(--green-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+
+        /* Pantalla Final */
+        .screen-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        /* --- MEDIA QUERIES PARA PANTALLAS GRANDES (PC) --- */
+        @media (min-width: 600px) {
+            body { padding: 20px; }
+            .question-container { margin-top: 20px; padding: 25px; min-height: 80px; }
+            #question-text { font-size: 1.4rem; }
+            .game-area { margin-top: 20px; }
+            .rosco-letter { width: 42px; height: 42px; font-size: 1.1rem; }
+            .hint-label { font-size: 1.2rem; margin-bottom: 10px; }
+            .hint-label strong { font-size: 1.5rem; }
+            #answer-input { padding: 12px; font-size: 1.4rem; }
+            .btn-next { width: 60px; height: 60px; margin-top: 20px; }
+            .btn-next svg { width: 30px; height: 30px; }
+            .progress-tag { top: 20px; right: 20px; width: 55px; height: 55px; font-size: 1rem; }
+            .footer-stats { position: fixed; bottom: 30px; left: 30px; margin: 0; }
+            .stat-box { font-size: 1.8rem; padding: 10px 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="question-container">
+        <p id="question-text">Cargando pregunta...</p>
+    </div>
+
+    <div class="game-area">
+        <div class="progress-tag"><span id="current-num">1</span>/26</div>
+        <div id="rosco-container"></div>
+        
+        <div class="game-center">
+            <span class="hint-label" id="hint-label">Empieza por <strong>A</strong></span>
+            <input type="text" id="answer-input" placeholder="Pasapalabra..." autocomplete="off">
+            <br>
+            <button class="btn-next" id="btn-submit">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="footer-stats">
+        <div class="stat-box" id="timer">00:30</div>
+    </div>
+
+    <div id="end-screen" class="screen-overlay">
+        <h1 id="end-title" style="font-size: 2.5rem; margin-bottom: 0;">¡JUEGO TERMINADO!</h1>
+        <p id="end-stats" style="font-size: 1.5rem; color: #666;"></p>
+        <button class="btn-restart" onclick="location.reload()" style="padding: 15px 40px; background: var(--green-primary); color: white; border: none; border-radius: 10px; font-size: 1.2rem; font-weight: bold; cursor: pointer; margin-top: 20px;">EMPEZAR DE CERO</button>
+    </div>
+
+    <script>
+        const questions = [
+            { letra: "A", p: "Rosco Letra A: Elemento amarillo que huele a huevos podridos cuando se quema, muy asociado a los volcanes.", r: "azufre" },
+            { letra: "B", p: "Rosco Letra B: Metal que se usa para hacer las pastillas de los frenos de los coches y que sirve para controlar las centrales nucleares", r: "boro" },
+            { letra: "C", p: "Rosco Letra C: El elemento químico líquido que se usa en las piscinas para desinfectar el agua y matar las bacterias", r: "cloro" },
+            { letra: "D", p: "Rosco Letra D: Elemento sintético y altamente radiactivo de la tabla periódica, cuyo nombre rinde homenaje a la ciudad rusa de Dubna, famosa por sus investigaciones nucleares.", r: "dubnio" },
+            { letra: "E", p: "Rosco Letra E: Metal plateado y maleable que se usa desde la antigüedad para soldar circuitos electrónicos y para revestir las latas de acero, evitando que los alimentos se oxiden.", r: "estaño" },
+            { letra: "F", p: "Rosco Letra F: El componente que se añade a las pastas de dientes para evitar las caries.", r: "fluor" },
+            { letra: "G", p: "Rosco Letra G: Metal de transición muy curioso que tiene un punto de fusión tan bajo que se derrite literalmente en la palma de tu mano con el simple calor corporal.", r: "galio" },
+            { letra: "H", p: "Rosco Letra H: Metal gris muy pesado con el que se construye el acero, los coches, las herramientas y las vigas de las casas.", r: "hierro" },
+            { letra: "I", p: "Rosco Letra I: Metal blando y plateado muy usado en pantallas táctiles, cuyo nombre es idéntico a la palabra con la que históricamente se llamaba a los aborígenes de América, como los valientes caciques Guaicaipuro o Tamanaco de la historia de Venezuela.", r: "indio" },
+            { letra: "K", p: "Rosco Letra K: Gas noble usado en bombillas de alta potencia cuyo nombre es casi idéntico al del planeta natal de Superman", r: "kripton" },   
+            { letra: "L", p: "Rosco Letra L: Es el metal más ligero y menos denso de toda la tabla periódica, hoy en día sumamente cotizado a nivel mundial porque es el componente esencial para fabricar las baterías de los teléfonos inteligentes, laptops y coches eléctricos.", r: "litio" },
+            { letra: "M", p: "Rosco Letra M: El metal líquido que venía dentro de los termómetros médicos antiguos para medir la fiebre.", r: "mercurio" },
+            { letra: "N", p: "Rosco Letra N: Gas que forma casi el 80% del aire que nos rodea y que en estado líquido sirve para congelar cosas al instante.", r: "nitrogeno" },
+            { letra: "O", p: "Rosco Letra O: El gas invisible que los humanos necesitamos respirar cada segundo para poder vivir.", r: "oxigeno" },
+            { letra: "P", p: "Rosco Letra P: Metal blando que se encuentra en los plátanos y que es buenísimo para evitar los calambres musculares.", r: "potasio" },
+            { letra: "R", p: "Rosco Letra R: Elemento químico súper radiactivo descubierto por Marie Curie, cuyo nombre recuerda a los rayos de luz.", r: "radio" },
+            { letra: "S", p: "Rosco Letra S: Metal blando que explota si toca el agua, pero que si lo juntas con el cloro forma la sal común de la cocina.", r: "sodio" },
+            { letra: "T", p: "Rosco Letra T: Metal súper resistente, muy ligero y compatible con el cuerpo humano, ideal para fabricar desde aviones y naves espaciales hasta prótesis y队 implantes médicos.", r: "titanio" },
+            { letra: "U", p: "Rosco Letra U: Metal pesado y radiactivo que se utiliza como el combustible principal de las centrales nucleares.", r: "uranio" },
+            { letra: "V", p: "Rosco Letra V: Metal gris y brillante que se añade al acero para hacerlo increíblemente duro, muy utilizado para fabricar herramientas de alta resistencia como llaves inglesas.", r: "vanadio" },
+            { letra: "W", p: "Rosco Letra W: Metal increíblemente duro que tiene el punto de fusión más alto de todos los elementos, famoso por haber sido el filamento que daba luz dentro de las bombillas tradicionales.", r: "wolframio" },
+            { letra: "X", p: "Rosco Letra X: Gas noble, pesado y poco reactivo, que además de usarse en los faros de los coches, se utiliza en los flashes de fotografía profesional y en la propulsión de motores de iones en naves espaciales.", r: "xenon" },
+            { letra: "Y", p: "Rosco Letra Y: Elemento que sirve como desinfectante médico para las heridas (el líquido marrón) y que suele venir añadido en la sal de mesa", r: "yodo" },
+            { letra: "Z", p: "Rosco Letra Z: Metal de color blanco azulado, esencial para la salud humana, que se encuentra mucho en las almejas, las carnes rojas y las pipas de calabaza", r: "zinc" }
+        ];
+
+        let currentIdx = 0;
+        let score = 0;
+        let timeLeft = 35;
+        let timerInterval;
+
+        // --- CÁLCULO RESPONSIVE DEL ROSCO ---
+        function renderRosco() {
+            const container = document.getElementById('rosco-container');
+            container.innerHTML = ""; // Limpiar antes de renderizar
+            
+            // Obtener las dimensiones actuales en píxeles del contenedor
+            const size = container.offsetWidth; 
+            const center = size / 2;
+            // El radio será el 40% del ancho para dejar margen a las letras
+            const radius = size * 0.40; 
+
+            questions.forEach((q, i) => {
+                const div = document.createElement('div');
+                div.className = 'rosco-letter';
+                div.id = `node-${i}`;
+                div.innerText = q.letra;
+                
+                // Si ya fue respondida, mantener su estado visual al redibujar
+                if(i < currentIdx) {
+                    // Lógica para recordar si estuvo bien o mal (opcional, por defecto conserva la clase activa si se actualiza en vivo)
+                }
+
+                const angle = (i * (360 / questions.length) - 90) * (Math.PI / 180);
+                div.style.left = (center + radius * Math.cos(angle)) + 'px';
+                div.style.top = (center + radius * Math.sin(angle)) + 'px';
+                container.appendChild(div);
+            });
+            
+            // Re-aplicar clase activa al nodo actual
+            const activeNode = document.getElementById(`node-${currentIdx}`);
+            if(activeNode) activeNode.classList.add('active');
+        }
+
+        // Renderizar al cargar y al cambiar el tamaño de la pantalla
+        window.addEventListener('load', renderRosco);
+        window.addEventListener('resize', renderRosco);
+
+        function updateGame() {
+            if (currentIdx >= questions.length) {
+                endGame();
+                return;
+            }
+
+            const q = questions[currentIdx];
+            document.getElementById('question-text').innerText = q.p;
+            document.getElementById('hint-label').innerHTML = `Empieza por <strong>${q.letra}</strong>`;
+            document.getElementById('current-num').innerText = currentIdx + 1;
+
+            document.querySelectorAll('.rosco-letter').forEach(n => n.classList.remove('active'));
+            const currentNode = document.getElementById(`node-${currentIdx}`);
+            if(currentNode) currentNode.classList.add('active');
+
+            document.getElementById('answer-input').value = "";
+            document.getElementById('answer-input').focus();
+            resetTimer();
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 35;
+            updateTimerUI();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) checkAnswer();
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const s = timeLeft < 10 ? '0' + timeLeft : timeLeft;
+            document.getElementById('timer').innerText = `00:${s}`;
+        }
+
+        function checkAnswer() {
+            const input = document.getElementById('answer-input').value.toLowerCase().trim();
+            const correctStr = questions[currentIdx].r.toLowerCase();
+            const node = document.getElementById(`node-${currentIdx}`);
+
+            if (input === correctStr) {
+                if(node) node.classList.add('correct');
+                score++;
+            } else {
+                if(node) node.classList.add('wrong');
+            }
+
+            currentIdx++;
+            updateGame();
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            document.getElementById('end-screen').style.display = 'flex';
+            document.getElementById('end-stats').innerText = `Aciertos: ${score} de ${questions.length}`;
+            if(score === questions.length) {
+                document.getElementById('end-title').innerText = "¡PERFECTO!";
+                document.getElementById('end-title').style.color = "var(--green-primary)";
+            }
+        }
+
+        document.getElementById('btn-submit').onclick = checkAnswer;
+        document.getElementById('answer-input').onkeypress = (e) => { if(e.key === 'Enter') checkAnswer(); };
+
+        // Inicio del juego diferido hasta que renderRosco se ejecute por primera vez
+        setTimeout(updateGame, 50);
+    </script>
+</body>
+</html>
